@@ -1,4 +1,4 @@
-import createShortUrlService from "../services/shortURLServices.js";
+import createShortUrlService from "../services/shortUrl.service.js";
 
 const MAX_BODY_SIZE = 1024 * 1024;
 
@@ -41,6 +41,13 @@ export default async function createShortUrlController(req, res) {
       }
 
       const shortUrl = await createShortUrlService(longUrl);
+
+      if (shortUrl.valid === false) {
+        return sendJSON(res, 400, {
+          success: false,
+          message: shortUrl.message,
+        });
+      }
 
       return sendJSON(res, 201, {
         success: true,
