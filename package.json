@@ -1,0 +1,18 @@
+{
+  "name": "url-shortener",
+  "version": "1.0.0",
+  "description": "To short the URL's of users",
+  "license": "ISC",
+  "author": "Basim K",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "nodemon": "^3.1.14",
+    "pg": "^8.22.0",
+    "redis": "^6.1.0"
+  }
+}
