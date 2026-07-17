@@ -1,73 +1,68 @@
 import pool from "../db/db.js";
 
-export async function createShortURL(longURL) {
-  const url = new URL(longURL);
-
-  const finalURL = url.host + url.pathname + url.search;
-
-  console.log(finalURL);
-
-  try {
-    const result = await pool.query(
-      `SELECT *
-      FROM url_table
-      WHERE long_url = $1`,
-      [finalURL]
-    );
-  } catch (error) {
-    // if any error happened from the DB
-    console.error(error);
-    throw new Error(error);
-  }
-
-  if (result.rows.length != 0) {
-    return result.rows[0].short_url;
-  } else {
-    // if there is no value in the DB, creating the shortUrl
-    return helperToCreateShortUrl(finalURL);
-  }
-}
-
-async function helperToCreateShortUrl(longUrl) {
+export default async function createShortUrlService(longUrl) {
   if (!longUrl) {
-    throw new Error("longUrl is required");
+    throw new Error("URL is required");
   }
 
-  const randomID = Date.now();
-  const shortUrlId = base62Encode(randomID);
-
-  // Example database insert for URL table
-  const query = `
-    INSERT INTO url_table
-    VALUES ($1, $2, $3)
-    RETURNING *;
-  `;
-
-  const values = [randomID, shortUrlId, longUrl];
+  const normalizedUrl = new URL(longUrl).toString();
 
   try {
-    let dbResult = await pool.query(query, values);
-    return dbResult.rows[0].short_url;
+    // Check whether URL already exists
+    const existingUrl = await pool.query(
+      `
+      SELECT short_url
+      FROM url_table
+      WHERE long_url = $1
+      `,
+      [normalizedUrl]
+    );
+
+    if (existingUrl.rows.length > 0) {
+      return existingUrl.rows[0].short_url;
+    }
+
+    // Generate unique numeric ID
+    const id = Date.now();
+
+    // Convert ID into short code
+    const shortCode = base62Encode(BigInt(id));
+
+    // Store URL information in database
+    const result = await pool.query(
+      `
+      INSERT INTO url_table
+      (
+        id,
+        short_url,
+        long_url
+      )
+      VALUES
+      ($1, $2, $3)
+      RETURNING short_url
+      `,
+      [id, shortCode, normalizedUrl]
+    );
+
+    return result.rows[0].short_url;
   } catch (error) {
-    throw new Error(error);
+    console.error("Create short URL failed:", error);
+    throw error;
   }
 }
 
-// creating the base62Encoded for the ID
-function base62Encode(num) {
-  const chars =
+function base62Encode(number) {
+  const characters =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
-  if (num === 0n) {
-    return "0";
-  }
 
   let result = "";
 
-  while (num > 0) {
-    const remainder = num % 62;
-    result = chars[remainder] + result;
-    num = Math.floor(num / 62);
+  while (number > 0n) {
+    const remainder = number % 62n;
+
+    result = characters[remainder] + result;
+
+    number = number / 62n;
   }
 
   return result;
