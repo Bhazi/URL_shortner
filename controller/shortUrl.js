@@ -1,50 +1,62 @@
-import { createShortURL } from "../services/shortURLServices.js";
+import createShortUrlService from "../services/shortURLServices.js";
 
-function createShortUrl(req, res) {
+const MAX_BODY_SIZE = 1024 * 1024;
+
+function sendJSON(res, statusCode, data) {
+  res.writeHead(statusCode, {
+    "Content-Type": "application/json",
+  });
+
+  res.end(JSON.stringify(data));
+}
+
+export default async function createShortUrlController(req, res) {
   let body = "";
 
-  // collect data chunks
   req.on("data", (chunk) => {
-    body += chunk.toString();
-    if (body.length > 1e6) {
-      // ~1MB
+    body += chunk;
+
+    // Protect against oversized payloads
+    if (body.length > MAX_BODY_SIZE) {
       req.destroy();
     }
   });
 
   req.on("end", async () => {
-    console.log("Raw Body:", body);
-
-    if (!body) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ success: false, message: "Empty body" }));
-    }
-
-    let parsed = {};
-
     try {
-      parsed = JSON.parse(body);
-    } catch (e) {
-      console.log("Invalid JSON body:", e.message);
-      res.writeHead(400, { "Content-Type": "application/json" });
-      return res.end(
-        JSON.stringify({ success: false, message: "Invalid JSON" })
-      );
-    }
-    // fetching from DB
-    let shortUrl = await createShortURL(parsed.longUrl);
+      if (!body.trim()) {
+        return sendJSON(res, 400, {
+          success: false,
+          message: "Request body is required",
+        });
+      }
 
-    res.writeHead(201, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({ message: "Created Successfully", data: shortUrl })
-    );
+      const { longUrl } = JSON.parse(body);
+
+      if (!longUrl) {
+        return sendJSON(res, 400, {
+          success: false,
+          message: "longUrl is required",
+        });
+      }
+
+      const shortUrl = await createShortUrlService(longUrl);
+
+      return sendJSON(res, 201, {
+        success: true,
+        data: shortUrl,
+      });
+    } catch (error) {
+      console.error(error);
+
+      return sendJSON(res, 500, {
+        success: false,
+        message: "Internal server error",
+      });
+    }
   });
 
-  req.on("error", (err) => {
-    console.error("Request Error", err);
-    res.writeHead(500);
-    return res.end("Server error");
+  req.on("error", (error) => {
+    console.error("Request failed:", error);
   });
 }
-
-export default createShortUrl;
