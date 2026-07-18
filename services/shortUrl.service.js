@@ -1,4 +1,4 @@
-import pool from "../db/db.js";
+import pool from "../src/db/postgres.js";
 import Snowflake from "../utils/snowflake.js";
 import base62Encode from "../utils/base62Encode.js";
 
@@ -37,8 +37,6 @@ export default async function createShortUrlService(longUrl) {
 
     // Convert ID into short code
     const shortCode = base62Encode(id);
-
-    console.log(shortCode);
 
     // Store URL information in database
     const result = await pool.query(

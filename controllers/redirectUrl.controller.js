@@ -74,7 +74,7 @@ export default function redirectForShortUrl(req, res) {
         Location: longUrl.startsWith("http") ? longUrl : `https://${longUrl}`,
       });
 
-      res.end();
+      // res.end();
     } catch (error) {
       console.error("Redirect Error:", error);
 

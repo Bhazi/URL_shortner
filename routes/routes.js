@@ -1,5 +1,5 @@
-import createShortUrlController from "../controller/shortUrl.controller.js";
-import redirectForShortUrl from "../controller/redirectUrl.controller.js";
+import createShortUrlController from "../controllers/shortUrl.controller.js";
+import redirectForShortUrl from "../controllers/redirectUrl.controller.js";
 
 function handleUrlRoutes(req, res) {
   if (req.method === "POST" && req.url === "/api/v1/data/shorten") {
